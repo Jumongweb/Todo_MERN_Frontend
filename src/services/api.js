@@ -23,6 +23,7 @@ export const addTask = async (text) => {
 
 export const deleteTask = async (id) => {
   const response = await api.delete(`/tasks/${id}`);
+  console.log(response.data)
   return response.data;
 };
 
@@ -36,5 +37,6 @@ export const updatePriority = async (id, newPriority) => {
   const response = await api.patch(`/tasks/${id}/priority`, { priority: newPriority });
   return response.data;
 };
+
 
 export default api;
