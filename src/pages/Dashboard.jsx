@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '../services/auth';
 import Navbar from '../components/Navbar';
-import { addTask as apiAddTask, deleteTask, updateStatus, updatePriority } from '../services/api';
+import api, { addTask as apiAddTask, deleteTask, updateStatus, updatePriority } from '../services/api';
 
 export default function Dashboard({ token }) {
   const [user, setUser] = useState(null);
@@ -12,6 +12,15 @@ export default function Dashboard({ token }) {
   const [filterPriority, setFilterPriority] = useState("all");
   const navigate = useNavigate();
 
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await api.get('/tasks');
+      setTasks(Array.isArray(response.data) ? response.data : response.data.tasks || []);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -20,19 +29,7 @@ export default function Dashboard({ token }) {
       setUser(currentUser);
       if (token) fetchTasks();
     }
-  }, [navigate, token]);
-
-  const fetchTasks = async () => {
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/tasks`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setTasks(Array.isArray(data) ? data : data.tasks || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  }, [navigate, token, fetchTasks]);
 
   const handleAddTask = async (e) => {
     e.preventDefault();
@@ -42,6 +39,33 @@ export default function Dashboard({ token }) {
       const newTask = await apiAddTask(taskText);
       setTasks([...tasks, newTask]);
       setTaskText("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    try {
+      await deleteTask(id);
+      setTasks(tasks.filter(t => t._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateStatus = async (id, currentStatus) => {
+    try {
+      const updatedTask = await updateStatus(id, currentStatus);
+      setTasks(tasks.map(t => (t._id === id ? updatedTask : t)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdatePriority = async (id, newPriority) => {
+    try {
+      const updatedTask = await updatePriority(id, newPriority);
+      setTasks(tasks.map(t => (t._id === id ? updatedTask : t)));
     } catch (err) {
       console.error(err);
     }
@@ -64,12 +88,12 @@ export default function Dashboard({ token }) {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-200">
       
-      {/* Navbar fixed at top */}
+      {/* Navbar */}
       <div className="flex-shrink-0">
         <Navbar />
       </div>
 
-      {/* Main scrollable content */}
+      {/* Main content */}
       <main className="flex-1 overflow-y-auto p-8">
         <h1 className='text-4xl font-extrabold text-center mb-8 text-indigo-700 drop-shadow'>
           MERN TO-DO APP
@@ -120,7 +144,7 @@ export default function Dashboard({ token }) {
               </div>
               <div className='flex gap-2 items-center'>
                 <button
-                  onClick={() => updateStatus(task._id, task.status)}
+                  onClick={() => handleUpdateStatus(task._id, task.status)}
                   className={`px-3 py-1 rounded-full font-semibold transition-colors duration-300 ${
                     task.status === "pending"
                       ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-500"
@@ -132,7 +156,7 @@ export default function Dashboard({ token }) {
 
                 <select
                   value={task.priority}
-                  onChange={(e) => updatePriority(task._id, e.target.value)}
+                  onChange={(e) => handleUpdatePriority(task._id, e.target.value)}
                   className='p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400'
                 >
                   <option value="low">Low</option>
@@ -141,7 +165,7 @@ export default function Dashboard({ token }) {
                 </select>
 
                 <button
-                  onClick={() => deleteTask(task._id)}
+                  onClick={() => handleDeleteTask(task._id)}
                   title="Delete task"
                   className='flex items-center gap-1 px-3 py-1 bg-red-500 hover:bg-red-700 text-white font-semibold rounded-full transition-colors duration-200 ml-2'
                 >
