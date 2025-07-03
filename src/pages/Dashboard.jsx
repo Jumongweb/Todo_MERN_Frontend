@@ -153,8 +153,7 @@ export default function Dashboard({ token }) {
         </ul>
       </main>
 
-      {/* Footer fixed at bottom */}
-      <footer className='flex-shrink-0 bg-indigo-600 text-white p-4 text-center shadow-inner'>
+      <footer className='bg-indigo-700 flex-shrink-0 text-white p-4 text-center shadow-inner'>
         © 2025 Your To-Do App
       </footer>
     </div>
